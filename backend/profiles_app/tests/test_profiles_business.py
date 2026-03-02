@@ -1,0 +1,83 @@
+from django.contrib.auth.models import User
+from django.test import TestCase
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
+
+from auth_app.models import UserProfile
+from profiles_app.models import Profile
+
+
+class BusinessProfileListEndpointTest(TestCase):
+    """
+    GET /api/profiles/business/ per spec:
+    200 = list of business users, 401 = not authenticated.
+    Happy and unhappy path tests.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.url = '/api/profiles/business/'
+        self.user = User.objects.create_user(
+            username='viewer',
+            email='viewer@test.de',
+            password='pass1234!',
+        )
+        UserProfile.objects.create(user=self.user, user_type='customer')
+        Profile.objects.get_or_create(user=self.user, defaults={})
+        self.token = Token.objects.create(user=self.user)
+        self.auth_headers = {'HTTP_AUTHORIZATION': f'Token {self.token.key}'}
+
+    # --- Happy path: 200 ---
+
+    def test_get_business_profiles_authenticated_returns_200(self):
+        response = self.client.get(self.url, **self.auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_business_profiles_returns_list(self):
+        response = self.client.get(self.url, **self.auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertIsInstance(data, list)
+
+    def test_get_business_profiles_includes_only_business_users(self):
+        business_user = User.objects.create_user(
+            username='max_business',
+            email='max@business.de',
+            password='pass1234!',
+        )
+        UserProfile.objects.create(user=business_user, user_type='business')
+        Profile.objects.get_or_create(user=business_user, defaults={})
+        response = self.client.get(self.url, **self.auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['username'], 'max_business')
+        self.assertEqual(data[0]['type'], 'business')
+
+    def test_get_business_profiles_response_fields_no_null(self):
+        business_user = User.objects.create_user(
+            username='biz2',
+            email='biz2@test.de',
+            password='pass1234!',
+        )
+        UserProfile.objects.create(user=business_user, user_type='business')
+        Profile.objects.get_or_create(user=business_user, defaults={})
+        response = self.client.get(self.url, **self.auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertGreater(len(data), 0)
+        item = data[0]
+        for key in (
+            'first_name', 'last_name', 'location', 'tel',
+            'description', 'working_hours',
+        ):
+            self.assertIn(key, item)
+            self.assertIsNotNone(item[key])
+            self.assertIsInstance(item[key], str)
+
+    # --- Unhappy path: 401 ---
+
+    def test_get_business_profiles_without_auth_returns_401(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

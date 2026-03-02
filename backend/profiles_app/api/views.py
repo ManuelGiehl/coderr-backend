@@ -9,6 +9,22 @@ from profiles_app.api.serializers import ProfileSerializer
 from profiles_app.models import Profile
 
 
+class BusinessProfileListView(APIView):
+    """GET /api/profiles/business/; returns list of all business users; auth required."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Profile.objects.filter(
+            user__user_profile__user_type='business',
+        ).select_related('user', 'user__user_profile')
+
+    def get(self, request):
+        profiles = self.get_queryset()
+        serializer = ProfileSerializer(profiles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class ProfileDetailView(APIView):
     """GET and PATCH /api/profile/<pk>/; auth required; PATCH only for owner."""
 
