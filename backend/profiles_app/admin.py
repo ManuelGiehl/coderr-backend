@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register profiles_app models when defined.
+from profiles_app.models import Profile
+
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'location', 'created_at']

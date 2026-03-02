@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from auth_app.models import UserProfile
+from profiles_app.models import Profile
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -42,6 +43,7 @@ class RegistrationSerializer(serializers.Serializer):
             user=user,
             user_type=validated_data['type'],
         )
+        Profile.objects.get_or_create(user=user, defaults={})
         token, _ = Token.objects.get_or_create(user=user)
         return {
             'token': token.key,
