@@ -1,7 +1,10 @@
 from django.urls import path
 
+from auth_app.api.views import LoginView, RegistrationView
+
 app_name = 'auth_app'
 
 urlpatterns = [
-    # Add resource-oriented routes, e.g. path('', ViewSet.as_view(...))
+    path('registration/', RegistrationView.as_view()),
+    path('login/', LoginView.as_view()),
 ]
