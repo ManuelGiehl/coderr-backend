@@ -25,6 +25,22 @@ class BusinessProfileListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CustomerProfileListView(APIView):
+    """GET /api/profiles/customer/; returns list of all customer profiles; auth required."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Profile.objects.filter(
+            user__user_profile__user_type='customer',
+        ).select_related('user', 'user__user_profile')
+
+    def get(self, request):
+        profiles = self.get_queryset()
+        serializer = ProfileSerializer(profiles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class ProfileDetailView(APIView):
     """GET and PATCH /api/profile/<pk>/; auth required; PATCH only for owner."""
 
