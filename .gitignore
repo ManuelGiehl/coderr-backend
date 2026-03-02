@@ -1,7 +1,7 @@
-# Frontend (nicht nach GitHub)
+# Frontend (excluded from repo)
 frontend/
 
-# Umgebungsvariablen & Secrets
+# Environment variables & secrets
 .env
 .env.local
 .env.*.local
@@ -37,6 +37,9 @@ yarn-error.log*
 .next/
 out/
 
+# Cursor (rules, local config – do not upload)
+.cursor/
+
 # IDE & Editor
 .idea/
 .vscode/
@@ -49,6 +52,6 @@ out/
 Thumbs.db
 desktop.ini
 
-# Sonstiges
+# Other
 *.tmp
 .cache/
