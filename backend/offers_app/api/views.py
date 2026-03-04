@@ -1,7 +1,7 @@
 from django.db.models import Min, Q
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -100,3 +100,20 @@ class OfferListView(ListCreateAPIView):
         else:
             qs = qs.order_by(ordering)
         return qs
+
+
+class OfferDetailView(RetrieveAPIView):
+    """
+    GET /api/offers/<id>/: single offer; auth required.
+    Returns offer with details (id+url), min_price, min_delivery_time.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = OfferListSerializer
+
+    def get_queryset(self):
+        return (
+            Offer.objects
+            .select_related('user')
+            .prefetch_related('details')
+        )

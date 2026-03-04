@@ -53,16 +53,16 @@ class OfferCreateEndpointTest(TestCase):
         self.client = APIClient()
         self.url = '/api/offers/'
         self.business_user = User.objects.create_user(
-            username='business_user',
-            email='biz@test.de',
-            password='pass1234!',
+            username='test',
+            email='test@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=self.business_user, user_type='business')
         self.business_token = Token.objects.create(user=self.business_user)
         self.customer_user = User.objects.create_user(
-            username='customer_user',
-            email='cust@test.de',
-            password='pass1234!',
+            username='otheruser',
+            email='otheruser@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=self.customer_user, user_type='customer')
         self.customer_token = Token.objects.create(user=self.customer_user)
@@ -110,6 +110,15 @@ class OfferCreateEndpointTest(TestCase):
     # --- Unhappy path: 401 ---
 
     def test_post_offers_without_auth_returns_401(self):
+        response = self.client.post(
+            self.url,
+            valid_offer_payload(),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_post_offers_invalid_token_returns_401(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token invalid')
         response = self.client.post(
             self.url,
             valid_offer_payload(),

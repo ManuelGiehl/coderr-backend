@@ -19,9 +19,11 @@ class BusinessProfileListEndpointTest(TestCase):
         self.client = APIClient()
         self.url = '/api/profiles/business/'
         self.user = User.objects.create_user(
-            username='viewer',
-            email='viewer@test.de',
-            password='pass1234!',
+            username='test',
+            first_name='test',
+            last_name='test',
+            email='test@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=self.user, user_type='customer')
         Profile.objects.get_or_create(user=self.user, defaults={})
@@ -42,9 +44,9 @@ class BusinessProfileListEndpointTest(TestCase):
 
     def test_get_business_profiles_includes_only_business_users(self):
         business_user = User.objects.create_user(
-            username='max_business',
-            email='max@business.de',
-            password='pass1234!',
+            username='otheruser',
+            email='otheruser@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=business_user, user_type='business')
         Profile.objects.get_or_create(user=business_user, defaults={})
@@ -52,14 +54,14 @@ class BusinessProfileListEndpointTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['username'], 'max_business')
+        self.assertEqual(data[0]['username'], 'otheruser')
         self.assertEqual(data[0]['type'], 'business')
 
     def test_get_business_profiles_response_fields_no_null(self):
         business_user = User.objects.create_user(
-            username='biz2',
-            email='biz2@test.de',
-            password='pass1234!',
+            username='otheruser',
+            email='otheruser@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=business_user, user_type='business')
         Profile.objects.get_or_create(user=business_user, defaults={})
@@ -79,5 +81,10 @@ class BusinessProfileListEndpointTest(TestCase):
     # --- Unhappy path: 401 ---
 
     def test_get_business_profiles_without_auth_returns_401(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_business_profiles_invalid_token_returns_401(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token invalid')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -19,11 +19,11 @@ class OfferListEndpointTest(TestCase):
         self.client = APIClient()
         self.url = '/api/offers/'
         self.user = User.objects.create_user(
-            username='jdoe',
-            first_name='John',
-            last_name='Doe',
-            email='jdoe@test.de',
-            password='pass1234!',
+            username='test',
+            first_name='test',
+            last_name='test',
+            email='test@test.de',
+            password='password1234',
         )
         self.offer = Offer.objects.create(
             user=self.user,
@@ -70,9 +70,9 @@ class OfferListEndpointTest(TestCase):
             self.assertIn(key, item)
         self.assertEqual(item['min_price'], 100.0)
         self.assertEqual(item['min_delivery_time'], 7)
-        self.assertEqual(item['user_details']['username'], 'jdoe')
-        self.assertEqual(item['user_details']['first_name'], 'John')
-        self.assertEqual(item['user_details']['last_name'], 'Doe')
+        self.assertEqual(item['user_details']['username'], 'test')
+        self.assertEqual(item['user_details']['first_name'], 'test')
+        self.assertEqual(item['user_details']['last_name'], 'test')
 
     def test_get_offers_filter_creator_id_returns_200(self):
         response = self.client.get(self.url, {'creator_id': self.user.id})

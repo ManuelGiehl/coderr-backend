@@ -18,9 +18,11 @@ class ProfileEndpointTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='profileuser',
-            email='profile@test.de',
-            password='pass1234!',
+            username='test',
+            first_name='test',
+            last_name='test',
+            email='test@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=self.user, user_type='business')
         Profile.objects.get_or_create(user=self.user, defaults={})
@@ -146,8 +148,8 @@ class ProfileEndpointTest(TestCase):
     def test_patch_profile_other_user_returns_403(self):
         other = User.objects.create_user(
             username='otheruser',
-            email='other@test.de',
-            password='pass1234!',
+            email='otheruser@test.de',
+            password='password1234',
         )
         UserProfile.objects.create(user=other, user_type='customer')
         Profile.objects.get_or_create(user=other, defaults={})

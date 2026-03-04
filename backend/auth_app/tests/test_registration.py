@@ -13,10 +13,10 @@ class RegistrationEndpointTest(TestCase):
         self.client = APIClient()
         self.url = '/api/registration/'
         self.valid_payload = {
-            'username': 'testuser',
+            'username': 'test',
             'email': 'test@test.de',
-            'password': 'password1234!',
-            'repeated_password': 'password1234!',
+            'password': 'password1234',
+            'repeated_password': 'password1234',
             'type': 'customer',
         }
 
@@ -34,13 +34,13 @@ class RegistrationEndpointTest(TestCase):
         self.assertIn('user_id', data)
         self.assertEqual(data['username'], self.valid_payload['username'])
         self.assertEqual(data['email'], self.valid_payload['email'])
-        self.assertEqual(data['user_id'], User.objects.get(username='testuser').id)
+        self.assertEqual(data['user_id'], User.objects.get(username='test').id)
 
     def test_registration_success_creates_user_and_profile(self):
         response = self.client.post(self.url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(User.objects.filter(username='testuser').exists())
-        user = User.objects.get(username='testuser')
+        self.assertTrue(User.objects.filter(username='test').exists())
+        user = User.objects.get(username='test')
         self.assertTrue(
             UserProfile.objects.filter(user=user, user_type='customer').exists()
         )
@@ -48,7 +48,7 @@ class RegistrationEndpointTest(TestCase):
     def test_registration_missing_fields_returns_400(self):
         response = self.client.post(
             self.url,
-            {'username': 'testuser'},
+            {'username': 'test'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

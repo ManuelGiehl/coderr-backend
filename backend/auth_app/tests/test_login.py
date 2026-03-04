@@ -15,13 +15,13 @@ class LoginEndpointTest(TestCase):
         self.client = APIClient()
         self.url = '/api/login/'
         User.objects.create_user(
-            username='loginuser',
-            email='login@test.de',
-            password='password1234!',
+            username='test',
+            email='test@test.de',
+            password='password1234',
         )
         self.valid_payload = {
-            'username': 'loginuser',
-            'password': 'password1234!',
+            'username': 'test',
+            'password': 'password1234',
         }
 
     # --- Happy path: 200 + correct response ---
@@ -39,8 +39,8 @@ class LoginEndpointTest(TestCase):
         self.assertIn('email', data)
         self.assertIn('user_id', data)
         self.assertEqual(data['username'], self.valid_payload['username'])
-        self.assertEqual(data['email'], 'login@test.de')
-        self.assertEqual(data['user_id'], User.objects.get(username='loginuser').id)
+        self.assertEqual(data['email'], 'test@test.de')
+        self.assertEqual(data['user_id'], User.objects.get(username='test').id)
 
     def test_login_success_token_is_non_empty(self):
         response = self.client.post(self.url, self.valid_payload, format='json')
@@ -52,7 +52,7 @@ class LoginEndpointTest(TestCase):
     def test_login_missing_username_returns_400(self):
         response = self.client.post(
             self.url,
-            {'password': 'password1234!'},
+            {'password': 'password1234'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -61,7 +61,7 @@ class LoginEndpointTest(TestCase):
     def test_login_missing_password_returns_400(self):
         response = self.client.post(
             self.url,
-            {'username': 'loginuser'},
+            {'username': 'test'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -78,8 +78,8 @@ class LoginEndpointTest(TestCase):
 
     def test_login_unknown_username_returns_400(self):
         payload = {
-            'username': 'unknownuser',
-            'password': 'password1234!',
+            'username': 'otheruser',
+            'password': 'password1234',
         }
         response = self.client.post(self.url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -95,7 +95,7 @@ class LoginEndpointTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_invalid_credentials_return_400_not_500(self):
-        payload = {'username': 'nobody', 'password': 'wrong'}
+        payload = {'username': 'otheruser', 'password': 'wrong'}
         response = self.client.post(self.url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertNotEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
