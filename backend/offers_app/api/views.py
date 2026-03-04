@@ -1,18 +1,19 @@
-from django.db.models import Min, Q
+from django.db.models import Min, Prefetch, Q
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from offers_app.api.permissions import IsBusinessUser
+from offers_app.api.permissions import IsBusinessUser, IsOfferOwner
 from offers_app.api.serializers import (
     OfferCreateResponseSerializer,
     OfferCreateSerializer,
     OfferListSerializer,
+    OfferUpdateSerializer,
 )
-from offers_app.models import Offer
+from offers_app.models import Offer, OfferDetail
 
 
 class OfferPageNumberPagination(PageNumberPagination):
@@ -102,14 +103,19 @@ class OfferListView(ListCreateAPIView):
         return qs
 
 
-class OfferDetailView(RetrieveAPIView):
+class OfferDetailView(RetrieveUpdateAPIView):
     """
     GET /api/offers/<id>/: single offer; auth required.
-    Returns offer with details (id+url), min_price, min_delivery_time.
+    PATCH /api/offers/<id>/: partial update; only offer creator; returns full offer.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOfferOwner]
     serializer_class = OfferListSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'PATCH':
+            return OfferUpdateSerializer
+        return OfferListSerializer
 
     def get_queryset(self):
         return (
@@ -117,3 +123,18 @@ class OfferDetailView(RetrieveAPIView):
             .select_related('user')
             .prefetch_related('details')
         )
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        instance = (
+            Offer.objects.filter(pk=instance.pk)
+            .prefetch_related(
+                Prefetch('details', queryset=OfferDetail.objects.order_by('id')),
+            )
+            .first()
+        )
+        response_serializer = OfferCreateResponseSerializer(instance)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)

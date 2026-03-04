@@ -96,6 +96,50 @@ class OfferCreateResponseSerializer(serializers.ModelSerializer):
         return data
 
 
+class OfferUpdateSerializer(serializers.Serializer):
+    """Partial update: only provided fields are updated. Details must be exactly 3 when present."""
+
+    title = serializers.CharField(max_length=255, required=False)
+    image = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    description = serializers.CharField(required=False, allow_blank=True)
+    details = serializers.ListField(
+        child=OfferDetailCreateSerializer(),
+        min_length=3,
+        max_length=3,
+        required=False,
+    )
+
+    def update(self, instance, validated_data):
+        if 'title' in validated_data:
+            instance.title = validated_data['title']
+        if 'image' in validated_data:
+            instance.image = (
+                (validated_data['image'] or '')
+                if validated_data['image'] is not None
+                else instance.image
+            )
+        if 'description' in validated_data:
+            instance.description = validated_data.get('description', '')
+        if 'details' in validated_data:
+            details_data = validated_data['details']
+            details_qs = instance.details.order_by('id')
+            for detail_obj, d in zip(details_qs, details_data):
+                detail_obj.title = d['title']
+                detail_obj.revisions = d['revisions']
+                detail_obj.delivery_time = d['delivery_time_in_days']
+                detail_obj.price = d['price']
+                detail_obj.features = d.get('features', [])
+                detail_obj.offer_type = d.get('offer_type', '')
+                detail_obj.save()
+        instance.save()
+        return instance
+
+
 class OfferListSerializer(serializers.ModelSerializer):
     """List view: explicit fields; details as id+url; min_price, min_delivery_time, user_details."""
 
