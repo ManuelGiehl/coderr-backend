@@ -1,7 +1,9 @@
 from django.urls import path
 
+from offers_app.api.views import OfferListView
+
 app_name = 'offers_app'
 
 urlpatterns = [
-    # Resource-oriented routes, e.g. /api/offers/
+    path('', OfferListView.as_view()),
 ]
