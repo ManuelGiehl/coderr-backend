@@ -1,7 +1,10 @@
 from django.db.models import Min, Prefetch, Q
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -103,10 +106,11 @@ class OfferListView(ListCreateAPIView):
         return qs
 
 
-class OfferDetailView(RetrieveUpdateAPIView):
+class OfferDetailView(RetrieveUpdateDestroyAPIView):
     """
     GET /api/offers/<id>/: single offer; auth required.
     PATCH /api/offers/<id>/: partial update; only offer creator; returns full offer.
+    DELETE /api/offers/<id>/: delete offer; only offer creator; 204 No Content.
     """
 
     permission_classes = [IsAuthenticated, IsOfferOwner]
