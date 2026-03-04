@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListCreateAPIView,
+    RetrieveAPIView,
     RetrieveUpdateDestroyAPIView,
 )
 from rest_framework.pagination import PageNumberPagination
@@ -13,6 +14,7 @@ from offers_app.api.permissions import IsBusinessUser, IsOfferOwner
 from offers_app.api.serializers import (
     OfferCreateResponseSerializer,
     OfferCreateSerializer,
+    OfferDetailResponseSerializer,
     OfferListSerializer,
     OfferUpdateSerializer,
 )
@@ -142,3 +144,14 @@ class OfferDetailView(RetrieveUpdateDestroyAPIView):
         )
         response_serializer = OfferCreateResponseSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class OfferDetailRetrieveView(RetrieveAPIView):
+    """
+    GET /api/offerdetails/<id>/: single offer detail; auth required.
+    Returns id, title, revisions, delivery_time_in_days, price, features, offer_type.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = OfferDetailResponseSerializer
+    queryset = OfferDetail.objects.all()
