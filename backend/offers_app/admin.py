@@ -15,4 +15,4 @@ class OfferAdmin(admin.ModelAdmin):
 
 @admin.register(OfferDetail)
 class OfferDetailAdmin(admin.ModelAdmin):
-    list_display = ['offer', 'price', 'delivery_time']
+    list_display = ['offer', 'title', 'price', 'delivery_time', 'offer_type']

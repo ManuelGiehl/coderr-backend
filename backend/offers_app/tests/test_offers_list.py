@@ -32,8 +32,12 @@ class OfferListEndpointTest(TestCase):
         )
         OfferDetail.objects.create(
             offer=self.offer,
-            price=Decimal('100.00'),
+            title='Basic',
+            revisions=2,
             delivery_time=7,
+            price=Decimal('100.00'),
+            features=['Logo', 'Card'],
+            offer_type='basic',
         )
 
     # --- Happy path: 200 ---

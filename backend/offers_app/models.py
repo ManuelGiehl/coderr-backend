@@ -26,17 +26,24 @@ class Offer(models.Model):
 
 
 class OfferDetail(models.Model):
-    """Single option within an offer (price, delivery time)."""
+    """Single option within an offer (price, delivery time, features, etc.)."""
 
     offer = models.ForeignKey(
         Offer,
         on_delete=models.CASCADE,
         related_name='details',
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    title = models.CharField(max_length=255, default='')
+    revisions = models.PositiveIntegerField(default=0)
     delivery_time = models.PositiveIntegerField(
         help_text='Delivery time in days',
     )
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    features = models.JSONField(
+        default=list,
+        help_text='List of feature strings',
+    )
+    offer_type = models.CharField(max_length=50, default='')
 
     class Meta:
         verbose_name = 'Offer detail'
@@ -44,4 +51,4 @@ class OfferDetail(models.Model):
         ordering = ['price']
 
     def __str__(self):
-        return f"{self.offer.title} – {self.price}"
+        return f"{self.offer.title} – {self.title}"

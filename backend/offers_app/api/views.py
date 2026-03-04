@@ -1,10 +1,17 @@
 from django.db.models import Min, Q
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from offers_app.api.serializers import OfferListSerializer
+from offers_app.api.permissions import IsBusinessUser
+from offers_app.api.serializers import (
+    OfferCreateResponseSerializer,
+    OfferCreateSerializer,
+    OfferListSerializer,
+)
 from offers_app.models import Offer
 
 
@@ -14,15 +21,34 @@ class OfferPageNumberPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class OfferListView(ListAPIView):
+class OfferListView(ListCreateAPIView):
     """
-    GET /api/offers/: paginated list; filters: creator_id, min_price,
-    max_delivery_time, search, ordering; no auth required.
+    GET /api/offers/: paginated list; no auth.
+    POST /api/offers/: create offer (3 details); business user only.
     """
 
-    permission_classes = [AllowAny]
     serializer_class = OfferListSerializer
     pagination_class = OfferPageNumberPagination
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsBusinessUser()]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return OfferCreateSerializer
+        return OfferListSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        offer = serializer.save()
+        response_serializer = OfferCreateResponseSerializer(offer)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def get_queryset(self):
         params = self.request.query_params
