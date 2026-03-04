@@ -1,7 +1,9 @@
 from django.urls import path
 
+from orders_app.api.views import OrderListView
+
 app_name = 'orders_app'
 
 urlpatterns = [
-    # Resource-oriented routes, e.g. /api/orders/
+    path('', OrderListView.as_view()),
 ]
