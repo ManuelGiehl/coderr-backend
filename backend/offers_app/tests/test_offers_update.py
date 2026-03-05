@@ -218,6 +218,24 @@ class OfferUpdateEndpointTest(TestCase):
         for d in data['details']:
             self.assertIn('id', d)
 
+    def test_patch_offer_detail_missing_offer_type_returns_400(self):
+        """Per spec: offer_type must be sent to identify the detail; missing → 400."""
+        details = [{
+            'title': 'Basic Design Updated',
+            'revisions': 3,
+            'delivery_time_in_days': 5,
+            'price': 100,
+            'features': [],
+        }]
+        response = self.client.patch(
+            self.url,
+            {'details': details},
+            format='json',
+            **self.auth_headers,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('details', response.json())
+
     def test_patch_offer_invalid_detail_price_returns_400(self):
         details = valid_update_details()
         details[0]['price'] = -1

@@ -36,7 +36,15 @@ class OfferDetailCreateSerializer(serializers.Serializer):
         child=serializers.CharField(),
         allow_empty=True,
     )
-    offer_type = serializers.CharField(max_length=50)
+    offer_type = serializers.CharField(max_length=50, allow_blank=False)
+
+    def validate_offer_type(self, value):
+        """Per API spec: offer_type must be sent to uniquely identify the detail (required for PATCH)."""
+        if not value or not str(value).strip():
+            raise serializers.ValidationError(
+                'offer_type is required to identify the detail.',
+            )
+        return value.strip()
 
     def validate_revisions(self, value):
         """Frontend sends -1 for 'limitless'; store as 0."""
