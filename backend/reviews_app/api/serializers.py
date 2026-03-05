@@ -1,6 +1,43 @@
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from reviews_app.models import Review
+
+
+class ReviewCreateSerializer(serializers.Serializer):
+    """POST body: business_user (id), rating (1-5), description. One review per business user per customer."""
+
+    business_user = serializers.IntegerField(min_value=1)
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    description = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate_business_user(self, value):
+        from django.contrib.auth import get_user_model
+        if not get_user_model().objects.filter(pk=value).exists():
+            raise serializers.ValidationError('Business user not found.')
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return attrs
+        if Review.objects.filter(
+            reviewer=request.user,
+            business_user_id=attrs['business_user'],
+        ).exists():
+            raise PermissionDenied(
+                'You can only submit one review per business profile.',
+            )
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context['request']
+        return Review.objects.create(
+            business_user_id=validated_data['business_user'],
+            reviewer=request.user,
+            rating=validated_data['rating'],
+            description=validated_data.get('description', ''),
+        )
 
 
 class ReviewListSerializer(serializers.ModelSerializer):

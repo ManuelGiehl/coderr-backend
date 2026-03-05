@@ -1,18 +1,42 @@
-from rest_framework.generics import ListAPIView
+from rest_framework import status
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-from reviews_app.api.serializers import ReviewListSerializer
+from reviews_app.api.permissions import IsCustomerUser
+from reviews_app.api.serializers import ReviewCreateSerializer, ReviewListSerializer
 from reviews_app.models import Review
 
 
-class ReviewListView(ListAPIView):
+class ReviewListView(ListCreateAPIView):
     """
     GET /api/reviews/: list all reviews. Authenticated users only.
-    Query params: business_user_id, reviewer_id (filter), ordering (updated_at or rating).
+    POST /api/reviews/: create review. Customer users only; one per business user.
+    Query params (GET): business_user_id, reviewer_id, ordering.
     """
 
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewListSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ReviewCreateSerializer
+        return ReviewListSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsCustomerUser()]
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review = serializer.save()
+        response_serializer = ReviewListSerializer(review)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def get_queryset(self):
         qs = Review.objects.all()
