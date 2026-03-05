@@ -13,7 +13,7 @@ from decouple import Config
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Project root (parent of backend/) – .env lives here
 PROJECT_ROOT = BASE_DIR.parent
-config = Config(PROJECT_ROOT / '.env')
+config = Config(str(PROJECT_ROOT / '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')

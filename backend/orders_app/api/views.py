@@ -6,7 +6,9 @@ from rest_framework.generics import (
 )
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from auth_app.models import UserProfile
 from orders_app.api.permissions import (
     IsBusinessUser,
     IsCustomerUser,
@@ -101,3 +103,29 @@ class OrderDetailView(RetrieveUpdateDestroyAPIView):
         self.perform_update(serializer)
         response_serializer = OrderListSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class OrderCountView(APIView):
+    """
+    GET /api/order-count/{business_user_id}/: returns the number of
+    ongoing orders (status 'in_progress') for the given business user.
+    Authenticated users only. 404 if no business user with that ID.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_user_id):
+        is_business = UserProfile.objects.filter(
+            user_id=business_user_id,
+            user_type='business',
+        ).exists()
+        if not is_business:
+            return Response(
+                {'detail': 'No business user found with that ID.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        count = Order.objects.filter(
+            business_user_id=business_user_id,
+            status='in_progress',
+        ).count()
+        return Response({'order_count': count}, status=status.HTTP_200_OK)

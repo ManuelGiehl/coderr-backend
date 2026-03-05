@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/offers/', include('offers_app.api.urls')),
     path('api/offerdetails/', include('offers_app.api.offerdetails_urls')),
     path('api/orders/', include('orders_app.api.urls')),
+    path('api/order-count/', include('orders_app.api.order_count_urls')),
     path('api/profile/', include('profiles_app.api.urls')),
     path('api/profiles/', include('profiles_app.api.list_urls')),
     path('api/reviews/', include('reviews_app.api.urls')),
