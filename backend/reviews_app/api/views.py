@@ -1,10 +1,14 @@
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from reviews_app.api.permissions import IsCustomerUser
-from reviews_app.api.serializers import ReviewCreateSerializer, ReviewListSerializer
+from reviews_app.api.permissions import IsCustomerUser, IsReviewAuthor
+from reviews_app.api.serializers import (
+    ReviewCreateSerializer,
+    ReviewListSerializer,
+    ReviewUpdateSerializer,
+)
 from reviews_app.models import Review
 
 
@@ -58,3 +62,33 @@ class ReviewListView(ListCreateAPIView):
         else:
             qs = qs.order_by('-updated_at')
         return qs
+
+
+class ReviewDetailView(RetrieveUpdateAPIView):
+    """
+    GET /api/reviews/{id}/: retrieve a review. Authenticated users only.
+    PATCH /api/reviews/{id}/: update rating and/or description. Only the creator (reviewer).
+    """
+
+    permission_classes = [IsAuthenticated, IsReviewAuthor]
+    serializer_class = ReviewListSerializer
+    queryset = Review.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method == 'PATCH':
+            return ReviewUpdateSerializer
+        return ReviewListSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        response_serializer = ReviewListSerializer(instance)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_200_OK,
+        )

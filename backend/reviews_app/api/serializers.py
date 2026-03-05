@@ -40,6 +40,21 @@ class ReviewCreateSerializer(serializers.Serializer):
         )
 
 
+class ReviewUpdateSerializer(serializers.Serializer):
+    """PATCH body: only rating (1-5) and/or description are editable."""
+
+    rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+
+    def update(self, instance, validated_data):
+        if 'rating' in validated_data:
+            instance.rating = validated_data['rating']
+        if 'description' in validated_data:
+            instance.description = validated_data['description']
+        instance.save(update_fields=['rating', 'description', 'updated_at'])
+        return instance
+
+
 class ReviewListSerializer(serializers.ModelSerializer):
     """List view: id, business_user, reviewer, rating, description, created_at, updated_at."""
 
