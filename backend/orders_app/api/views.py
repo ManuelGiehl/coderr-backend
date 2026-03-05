@@ -1,7 +1,10 @@
 from django.db.models import Q
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from orders_app.api.permissions import (
@@ -53,17 +56,18 @@ class OrderListView(ListCreateAPIView):
         )
 
 
-class OrderDetailView(RetrieveUpdateAPIView):
+class OrderDetailView(RetrieveUpdateDestroyAPIView):
     """
     GET /api/orders/{id}/: retrieve order (customer or business of that order).
     PATCH /api/orders/{id}/: update order status. Business user (order owner) only.
+    DELETE /api/orders/{id}/: delete order. Admin (staff) only. Returns 204 No Content.
     """
 
     permission_classes = [IsAuthenticated, IsOrderBusinessUser]
     serializer_class = OrderListSerializer
 
     def get_queryset(self):
-        if self.request.method == 'PATCH':
+        if self.request.method in ('PATCH', 'DELETE'):
             return Order.objects.all()
         return Order.objects.filter(
             Q(customer_user=self.request.user)
@@ -76,6 +80,8 @@ class OrderDetailView(RetrieveUpdateAPIView):
         return OrderListSerializer
 
     def get_permissions(self):
+        if self.request.method == 'DELETE':
+            return [IsAuthenticated(), IsAdminUser()]
         if self.request.method == 'PATCH':
             return [
                 IsAuthenticated(),
