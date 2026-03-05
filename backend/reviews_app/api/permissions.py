@@ -15,9 +15,9 @@ class IsCustomerUser(permissions.BasePermission):
 
 
 class IsReviewAuthor(permissions.BasePermission):
-    """Only the creator (reviewer) of the review can update it (PATCH)."""
+    """Only the creator (reviewer) of the review can update (PATCH) or delete (DELETE) it."""
 
-    message = 'You are not authorized to edit this review.'
+    message = 'You are not authorized to edit or delete this review.'
 
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated

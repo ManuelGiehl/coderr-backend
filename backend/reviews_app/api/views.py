@@ -1,5 +1,8 @@
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -64,10 +67,11 @@ class ReviewListView(ListCreateAPIView):
         return qs
 
 
-class ReviewDetailView(RetrieveUpdateAPIView):
+class ReviewDetailView(RetrieveUpdateDestroyAPIView):
     """
     GET /api/reviews/{id}/: retrieve a review. Authenticated users only.
     PATCH /api/reviews/{id}/: update rating and/or description. Only the creator (reviewer).
+    DELETE /api/reviews/{id}/: delete review. Only the creator. Returns 204 No Content.
     """
 
     permission_classes = [IsAuthenticated, IsReviewAuthor]
