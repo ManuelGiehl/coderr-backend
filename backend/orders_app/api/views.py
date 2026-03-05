@@ -1,11 +1,19 @@
 from django.db.models import Q
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from orders_app.api.permissions import IsCustomerUser
-from orders_app.api.serializers import OrderCreateSerializer, OrderListSerializer
+from orders_app.api.permissions import (
+    IsBusinessUser,
+    IsCustomerUser,
+    IsOrderBusinessUser,
+)
+from orders_app.api.serializers import (
+    OrderCreateSerializer,
+    OrderListSerializer,
+    OrderStatusUpdateSerializer,
+)
 from orders_app.models import Order
 
 
@@ -43,3 +51,47 @@ class OrderListView(ListCreateAPIView):
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class OrderDetailView(RetrieveUpdateAPIView):
+    """
+    GET /api/orders/{id}/: retrieve order (customer or business of that order).
+    PATCH /api/orders/{id}/: update order status. Business user (order owner) only.
+    """
+
+    permission_classes = [IsAuthenticated, IsOrderBusinessUser]
+    serializer_class = OrderListSerializer
+
+    def get_queryset(self):
+        if self.request.method == 'PATCH':
+            return Order.objects.all()
+        return Order.objects.filter(
+            Q(customer_user=self.request.user)
+            | Q(business_user=self.request.user),
+        ).order_by('-created_at')
+
+    def get_serializer_class(self):
+        if self.request.method == 'PATCH':
+            return OrderStatusUpdateSerializer
+        return OrderListSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'PATCH':
+            return [
+                IsAuthenticated(),
+                IsBusinessUser(),
+                IsOrderBusinessUser(),
+            ]
+        return [IsAuthenticated(), IsOrderBusinessUser()]
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        response_serializer = OrderListSerializer(instance)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)

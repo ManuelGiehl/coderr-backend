@@ -31,6 +31,20 @@ class OrderCreateSerializer(serializers.Serializer):
         return order
 
 
+PATCH_ALLOWED_STATUSES = ['in_progress', 'completed', 'cancelled']
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    """PATCH body: only status. Allowed: in_progress, completed, cancelled."""
+
+    status = serializers.ChoiceField(choices=PATCH_ALLOWED_STATUSES)
+
+    def update(self, instance, validated_data):
+        instance.status = validated_data['status']
+        instance.save(update_fields=['status', 'updated_at'])
+        return instance
+
+
 class OrderListSerializer(serializers.ModelSerializer):
     """List view: id, customer_user, business_user, title, revisions, delivery_time_in_days, price, features, offer_type, status, created_at, updated_at."""
 
