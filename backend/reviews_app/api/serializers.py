@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
 from core.serializer_fields import UTCDateTimeField
 from reviews_app.models import Review
@@ -26,8 +25,8 @@ class ReviewCreateSerializer(serializers.Serializer):
             reviewer=request.user,
             business_user_id=attrs['business_user'],
         ).exists():
-            raise PermissionDenied(
-                'You can only submit one review per business profile.',
+            raise serializers.ValidationError(
+                {'business_user': 'You can only submit one review per business profile.'},
             )
         return attrs
 

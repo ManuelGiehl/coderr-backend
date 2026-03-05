@@ -201,7 +201,8 @@ class OfferUpdateEndpointTest(TestCase):
 
     # --- Unhappy path: 400 ---
 
-    def test_patch_offer_fewer_than_three_details_returns_400(self):
+    def test_patch_offer_two_details_updates_only_those(self):
+        """Per spec: details can be updated individually; 1–3 elements allowed."""
         payload = {'details': valid_update_details()[:2]}
         response = self.client.patch(
             self.url,
@@ -209,8 +210,13 @@ class OfferUpdateEndpointTest(TestCase):
             format='json',
             **self.auth_headers,
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('details', response.json())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['details'][0]['title'], 'Basic Design Updated')
+        self.assertEqual(data['details'][1]['title'], 'Standard Design')
+        self.assertEqual(len(data['details']), 3)
+        for d in data['details']:
+            self.assertIn('id', d)
 
     def test_patch_offer_invalid_detail_price_returns_400(self):
         details = valid_update_details()

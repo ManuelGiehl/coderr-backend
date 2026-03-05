@@ -28,7 +28,7 @@ class IsBusinessUser(permissions.BasePermission):
 
 
 class IsOrderBusinessUser(permissions.BasePermission):
-    """Only the business_user of the order can update it (PATCH)."""
+    """Only the business_user of the order can update it (PATCH). GET allowed for customer or business of that order."""
 
     message = 'You do not have permission to update this order.'
 
@@ -38,4 +38,10 @@ class IsOrderBusinessUser(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        return obj.business_user_id == request.user.id
+        if request.method == 'PATCH':
+            if not hasattr(request.user, 'user_profile'):
+                return False
+            if request.user.user_profile.user_type != 'business':
+                return False
+            return obj.business_user_id == request.user.id
+        return False

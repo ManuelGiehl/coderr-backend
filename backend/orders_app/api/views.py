@@ -9,11 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from auth_app.models import UserProfile
-from orders_app.api.permissions import (
-    IsBusinessUser,
-    IsCustomerUser,
-    IsOrderBusinessUser,
-)
+from orders_app.api.permissions import IsCustomerUser, IsOrderBusinessUser
 from orders_app.api.serializers import (
     OrderCreateSerializer,
     OrderListSerializer,
@@ -85,11 +81,7 @@ class OrderDetailView(RetrieveUpdateDestroyAPIView):
         if self.request.method == 'DELETE':
             return [IsAuthenticated(), IsAdminUser()]
         if self.request.method == 'PATCH':
-            return [
-                IsAuthenticated(),
-                IsBusinessUser(),
-                IsOrderBusinessUser(),
-            ]
+            return [IsAuthenticated(), IsOrderBusinessUser()]
         return [IsAuthenticated(), IsOrderBusinessUser()]
 
     def perform_update(self, serializer):

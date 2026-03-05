@@ -1,7 +1,7 @@
 """
 POST /api/reviews/ per spec:
-201 = review created (customer only), 400 = bad request, 401 = not authenticated,
-403 = not customer or duplicate review per business profile.
+201 = review created (customer only), 400 = bad request / duplicate review, 401 = not authenticated,
+403 = not customer (business user).
 All comments and docstrings in English.
 """
 
@@ -147,7 +147,8 @@ class ReviewCreateEndpointTest(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_post_review_duplicate_same_business_returns_403(self):
+    def test_post_review_duplicate_same_business_returns_400(self):
+        """Duplicate review (same customer, same business) returns 400 Bad Request per spec."""
         Review.objects.create(
             business_user=self.business,
             reviewer=self.customer,
@@ -160,5 +161,5 @@ class ReviewCreateEndpointTest(TestCase):
             format='json',
             HTTP_AUTHORIZATION=f'Token {self.customer_token.key}',
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Review.objects.filter(reviewer=self.customer).count(), 1)

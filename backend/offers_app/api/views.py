@@ -140,7 +140,10 @@ class OfferDetailView(RetrieveUpdateDestroyAPIView):
             )
             .first()
         )
-        response_serializer = OfferCreateResponseSerializer(instance)
+        response_serializer = OfferCreateResponseSerializer(
+            instance,
+            context={'request': request},
+        )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 

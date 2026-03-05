@@ -142,17 +142,23 @@ class OfferCreateResponseSerializer(serializers.ModelSerializer):
 
 
 class OfferUpdateSerializer(serializers.Serializer):
-    """Partial update: only provided fields are updated. Details must be exactly 3 when present."""
+    """Partial update: only provided fields are updated. Details can be 1–3; each identified by offer_type."""
 
     title = serializers.CharField(max_length=255, required=False)
     image = ImageUploadOrPathField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True)
     details = serializers.ListField(
         child=OfferDetailCreateSerializer(),
-        min_length=3,
+        min_length=1,
         max_length=3,
         required=False,
     )
+
+    def to_internal_value(self, data):
+        """Treat empty details list as omitted so PATCH with only title/details:[] succeeds."""
+        if isinstance(data, dict) and 'details' in data and data['details'] == []:
+            data = {k: v for k, v in data.items() if k != 'details'}
+        return super().to_internal_value(data)
 
     def _save_uploaded_image(self, instance, uploaded_file):
         """Save uploaded file to media/offers/ and return relative path."""
@@ -178,15 +184,17 @@ class OfferUpdateSerializer(serializers.Serializer):
             instance.description = validated_data.get('description', '')
         if 'details' in validated_data:
             details_data = validated_data['details']
-            details_qs = instance.details.order_by('id')
-            for detail_obj, d in zip(details_qs, details_data):
-                detail_obj.title = d['title']
-                detail_obj.revisions = d['revisions']
-                detail_obj.delivery_time = d['delivery_time_in_days']
-                detail_obj.price = d['price']
-                detail_obj.features = d.get('features', [])
-                detail_obj.offer_type = d.get('offer_type', '')
-                detail_obj.save()
+            for d in details_data:
+                offer_type = d.get('offer_type', '')
+                detail_obj = instance.details.filter(offer_type=offer_type).first()
+                if detail_obj:
+                    detail_obj.title = d['title']
+                    detail_obj.revisions = d['revisions']
+                    detail_obj.delivery_time = d['delivery_time_in_days']
+                    detail_obj.price = d['price']
+                    detail_obj.features = d.get('features', [])
+                    detail_obj.offer_type = offer_type
+                    detail_obj.save()
         instance.save()
         return instance
 
