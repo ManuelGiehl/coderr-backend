@@ -1,3 +1,14 @@
 from rest_framework import permissions
 
-# App-specific permissions; combine e.g. IsAuthenticated & IsOwner.
+
+class IsCustomerUser(permissions.BasePermission):
+    """Only users with user_type 'customer' can create orders."""
+
+    message = 'Only customer users can create orders.'
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if not hasattr(request.user, 'user_profile'):
+            return False
+        return request.user.user_profile.user_type == 'customer'
