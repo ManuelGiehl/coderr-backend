@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
+from core.serializer_fields import UTCDateTimeField
 from reviews_app.models import Review
 
 
@@ -57,6 +58,9 @@ class ReviewUpdateSerializer(serializers.Serializer):
 
 class ReviewListSerializer(serializers.ModelSerializer):
     """List view: id, business_user, reviewer, rating, description, created_at, updated_at."""
+
+    created_at = UTCDateTimeField(read_only=True)
+    updated_at = UTCDateTimeField(read_only=True)
 
     class Meta:
         model = Review

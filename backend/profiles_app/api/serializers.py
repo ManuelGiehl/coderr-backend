@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
+from core.serializer_fields import UTCDateTimeField
 from profiles_app.models import Profile
 
 
@@ -23,6 +24,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         source='user.last_name', required=False, allow_blank=True
     )
     type = serializers.SerializerMethodField()
+    created_at = UTCDateTimeField(read_only=True)
 
     class Meta:
         model = Profile

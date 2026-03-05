@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.db.models import Min
 from rest_framework import serializers
 
+from core.serializer_fields import UTCDateTimeField
 from offers_app.models import Offer, OfferDetail
 
 
@@ -198,6 +199,8 @@ class OfferListSerializer(serializers.ModelSerializer):
     min_delivery_time = serializers.SerializerMethodField()
     user_details = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    created_at = UTCDateTimeField(read_only=True)
+    updated_at = UTCDateTimeField(read_only=True)
 
     class Meta:
         model = Offer

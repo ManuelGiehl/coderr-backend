@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
+from core.serializer_fields import UTCDateTimeField
 from offers_app.models import OfferDetail
 from orders_app.models import Order
 
@@ -50,6 +51,8 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     delivery_time_in_days = serializers.IntegerField(source='delivery_time')
     price = serializers.IntegerField()
+    created_at = UTCDateTimeField(read_only=True)
+    updated_at = UTCDateTimeField(read_only=True)
 
     class Meta:
         model = Order
