@@ -1,7 +1,9 @@
 from django.urls import path
 
+from reviews_app.api.views import ReviewListView
+
 app_name = 'reviews_app'
 
 urlpatterns = [
-    # Resource-oriented routes, e.g. /api/reviews/
+    path('', ReviewListView.as_view()),
 ]
