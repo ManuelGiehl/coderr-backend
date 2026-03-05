@@ -67,20 +67,20 @@ class OfferListView(ListCreateAPIView):
                 min_delivery=Min('details__delivery_time'),
             )
         )
-        creator_id = params.get('creator_id')
-        if creator_id is not None:
+        creator_id = (params.get('creator_id') or '').strip()
+        if creator_id:
             try:
                 qs = qs.filter(user_id=int(creator_id))
             except ValueError:
                 raise ValidationError({'creator_id': 'Must be an integer.'})
-        min_price = params.get('min_price')
-        if min_price is not None:
+        min_price = (params.get('min_price') or '').strip()
+        if min_price:
             try:
                 qs = qs.filter(min_p__gte=float(min_price))
             except ValueError:
                 raise ValidationError({'min_price': 'Must be a number.'})
-        max_delivery_time = params.get('max_delivery_time')
-        if max_delivery_time is not None:
+        max_delivery_time = (params.get('max_delivery_time') or '').strip()
+        if max_delivery_time:
             try:
                 qs = qs.filter(min_delivery__lte=int(max_delivery_time))
             except ValueError:
@@ -92,13 +92,11 @@ class OfferListView(ListCreateAPIView):
             qs = qs.filter(
                 Q(title__icontains=search) | Q(description__icontains=search),
             )
-        ordering = params.get('ordering', 'updated_at')
+        ordering = (params.get('ordering') or '').strip() or 'updated_at'
         if ordering not in (
             'updated_at', 'min_price', '-updated_at', '-min_price',
         ):
-            raise ValidationError(
-                {'ordering': "Must be 'updated_at' or 'min_price'."},
-            )
+            ordering = 'updated_at'
         if ordering == 'min_price':
             qs = qs.order_by('min_p')
         elif ordering == '-min_price':

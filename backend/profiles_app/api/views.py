@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from auth_app.models import UserProfile
 from profiles_app.api.permissions import IsProfileOwner
 from profiles_app.api.serializers import ProfileSerializer
 from profiles_app.models import Profile
@@ -47,8 +48,23 @@ class ProfileDetailView(APIView):
     permission_classes = [IsAuthenticated, IsProfileOwner]
 
     def get_object(self, pk):
-        profile = get_object_or_404(Profile, user_id=pk)
-        return profile
+        if int(pk) == self.request.user.id:
+            UserProfile.objects.get_or_create(
+                user_id=pk,
+                defaults={'user_type': UserProfile.UserType.CUSTOMER},
+            )
+            profile, _ = Profile.objects.get_or_create(
+                user_id=pk,
+                defaults={
+                    'location': '',
+                    'tel': '',
+                    'description': '',
+                    'working_hours': '',
+                    'file': '',
+                },
+            )
+            return profile
+        return get_object_or_404(Profile, user_id=pk)
 
     def get(self, request, pk):
         profile = self.get_object(pk)

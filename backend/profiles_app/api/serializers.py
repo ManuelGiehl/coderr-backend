@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from profiles_app.models import Profile
@@ -21,9 +22,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(
         source='user.last_name', required=False, allow_blank=True
     )
-    type = serializers.CharField(
-        source='user.user_profile.user_type', read_only=True
-    )
+    type = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -41,6 +40,13 @@ class ProfileSerializer(serializers.ModelSerializer):
             'email',
             'created_at',
         ]
+
+    def get_type(self, obj):
+        """Safely return user_type; empty string if UserProfile missing."""
+        try:
+            return obj.user.user_profile.user_type
+        except ObjectDoesNotExist:
+            return ''
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

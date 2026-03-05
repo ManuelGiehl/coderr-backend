@@ -1,21 +1,57 @@
+import os
+import uuid
+
+from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db.models import Min
 from rest_framework import serializers
 
 from offers_app.models import Offer, OfferDetail
 
 
+class ImageUploadOrPathField(serializers.Field):
+    """Accepts either an uploaded file (multipart) or a path string (JSON)."""
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'read') and hasattr(data, 'name'):
+            return data
+        if isinstance(data, str):
+            return data
+        raise serializers.ValidationError('Expected image file or path string.')
+
+
 class OfferDetailCreateSerializer(serializers.Serializer):
     """Nested serializer for one detail when creating an offer."""
 
     title = serializers.CharField(max_length=255)
-    revisions = serializers.IntegerField(min_value=0)
-    delivery_time_in_days = serializers.IntegerField(min_value=1)
-    price = serializers.IntegerField(min_value=0)
+    revisions = serializers.IntegerField(required=False, allow_null=True, min_value=-1)
+    delivery_time_in_days = serializers.IntegerField(
+        required=False, allow_null=True, min_value=1, default=1,
+    )
+    price = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0, default=0,
+    )
     features = serializers.ListField(
         child=serializers.CharField(),
         allow_empty=True,
     )
     offer_type = serializers.CharField(max_length=50)
+
+    def validate_revisions(self, value):
+        """Frontend sends -1 for 'limitless'; store as 0."""
+        if value is None or value < 0:
+            return 0
+        return value
+
+    def validate_delivery_time_in_days(self, value):
+        if value is None:
+            return 1
+        return value
+
+    def validate_price(self, value):
+        if value is None:
+            return 0
+        return value
 
 
 class OfferCreateSerializer(serializers.Serializer):
@@ -91,7 +127,15 @@ class OfferCreateResponseSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if data.get('image') == '':
+        if instance.image:
+            request = self.context.get('request')
+            if request:
+                data['image'] = request.build_absolute_uri(
+                    settings.MEDIA_URL + instance.image
+                )
+            else:
+                data['image'] = settings.MEDIA_URL + instance.image
+        else:
             data['image'] = None
         return data
 
@@ -100,12 +144,7 @@ class OfferUpdateSerializer(serializers.Serializer):
     """Partial update: only provided fields are updated. Details must be exactly 3 when present."""
 
     title = serializers.CharField(max_length=255, required=False)
-    image = serializers.CharField(
-        max_length=500,
-        required=False,
-        allow_blank=True,
-        allow_null=True,
-    )
+    image = ImageUploadOrPathField(required=False, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True)
     details = serializers.ListField(
         child=OfferDetailCreateSerializer(),
@@ -114,15 +153,26 @@ class OfferUpdateSerializer(serializers.Serializer):
         required=False,
     )
 
+    def _save_uploaded_image(self, instance, uploaded_file):
+        """Save uploaded file to media/offers/ and return relative path."""
+        name = getattr(uploaded_file, 'name', 'image')
+        ext = os.path.splitext(name)[1] or '.jpg'
+        safe_name = f'offer_{instance.pk}_{uuid.uuid4().hex[:8]}{ext}'
+        path = os.path.join('offers', safe_name)
+        saved_path = default_storage.save(path, uploaded_file)
+        return saved_path
+
     def update(self, instance, validated_data):
         if 'title' in validated_data:
             instance.title = validated_data['title']
         if 'image' in validated_data:
-            instance.image = (
-                (validated_data['image'] or '')
-                if validated_data['image'] is not None
-                else instance.image
-            )
+            value = validated_data['image']
+            if value is None:
+                instance.image = instance.image
+            elif hasattr(value, 'read'):
+                instance.image = self._save_uploaded_image(instance, value)
+            else:
+                instance.image = (value or '') if isinstance(value, str) else instance.image
         if 'description' in validated_data:
             instance.description = validated_data.get('description', '')
         if 'details' in validated_data:
@@ -147,6 +197,7 @@ class OfferListSerializer(serializers.ModelSerializer):
     min_price = serializers.SerializerMethodField()
     min_delivery_time = serializers.SerializerMethodField()
     user_details = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Offer
@@ -163,6 +214,14 @@ class OfferListSerializer(serializers.ModelSerializer):
             'min_delivery_time',
             'user_details',
         ]
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(settings.MEDIA_URL + obj.image)
+        return settings.MEDIA_URL + obj.image
 
     def get_details(self, obj):
         return [

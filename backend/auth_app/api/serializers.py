@@ -71,6 +71,10 @@ class LoginSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         user = validated_data['user']
+        UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'user_type': UserProfile.UserType.CUSTOMER},
+        )
         token, _ = Token.objects.get_or_create(user=user)
         return {
             'token': token.key,

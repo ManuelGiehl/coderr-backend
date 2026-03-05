@@ -109,7 +109,8 @@ class OfferListEndpointTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('max_delivery_time', response.json())
 
-    def test_get_offers_invalid_ordering_returns_400(self):
+    def test_get_offers_invalid_ordering_defaults_to_updated_at(self):
+        """Invalid ordering is ignored; results use default ordering (updated_at)."""
         response = self.client.get(self.url, {'ordering': 'invalid_field'})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('ordering', response.json())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('results', response.json())
