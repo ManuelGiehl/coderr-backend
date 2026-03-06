@@ -163,9 +163,25 @@ class OfferUpdateSerializer(serializers.Serializer):
     )
 
     def to_internal_value(self, data):
-        """Treat empty details list as omitted so PATCH with only title/details:[] succeeds."""
-        if isinstance(data, dict) and 'details' in data and data['details'] == []:
-            data = {k: v for k, v in data.items() if k != 'details'}
+        """Treat empty details list as omitted; require offer_type in each detail (per API spec)."""
+        if isinstance(data, dict):
+            if 'details' in data and data['details'] == []:
+                data = {k: v for k, v in data.items() if k != 'details'}
+            elif 'details' in data and isinstance(data['details'], list):
+                for idx, item in enumerate(data['details']):
+                    if not isinstance(item, dict):
+                        continue
+                    ot = item.get('offer_type')
+                    if ot is None or (isinstance(ot, str) and not ot.strip()):
+                        raise serializers.ValidationError({
+                            'details': {
+                                str(idx): {
+                                    'offer_type': [
+                                        'offer_type is required to identify the detail.',
+                                    ],
+                                },
+                            },
+                        })
         return super().to_internal_value(data)
 
     def _save_uploaded_image(self, instance, uploaded_file):
