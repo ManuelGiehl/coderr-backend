@@ -1,6 +1,5 @@
-from django.db.models import Min, Prefetch, Q
+from django.db.models import Min, Prefetch
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveAPIView,
@@ -10,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from offers_app.api.filters import apply_offer_list_filters
 from offers_app.api.permissions import IsBusinessUser, IsOfferOwner
 from offers_app.api.serializers import (
     OfferCreateResponseSerializer,
@@ -57,8 +57,7 @@ class OfferListView(ListCreateAPIView):
         )
 
     def get_queryset(self):
-        params = self.request.query_params
-        qs = (
+        base_qs = (
             Offer.objects
             .select_related('user')
             .prefetch_related('details')
@@ -67,43 +66,7 @@ class OfferListView(ListCreateAPIView):
                 min_delivery=Min('details__delivery_time'),
             )
         )
-        creator_id = (params.get('creator_id') or '').strip()
-        if creator_id:
-            try:
-                qs = qs.filter(user_id=int(creator_id))
-            except ValueError:
-                raise ValidationError({'creator_id': 'Must be an integer.'})
-        min_price = (params.get('min_price') or '').strip()
-        if min_price:
-            try:
-                qs = qs.filter(min_p__gte=float(min_price))
-            except ValueError:
-                raise ValidationError({'min_price': 'Must be a number.'})
-        max_delivery_time = (params.get('max_delivery_time') or '').strip()
-        if max_delivery_time:
-            try:
-                qs = qs.filter(min_delivery__lte=int(max_delivery_time))
-            except ValueError:
-                raise ValidationError(
-                    {'max_delivery_time': 'Must be an integer.'},
-                )
-        search = params.get('search', '').strip()
-        if search:
-            qs = qs.filter(
-                Q(title__icontains=search) | Q(description__icontains=search),
-            )
-        ordering = (params.get('ordering') or '').strip() or 'updated_at'
-        if ordering not in (
-            'updated_at', 'min_price', '-updated_at', '-min_price',
-        ):
-            ordering = 'updated_at'
-        if ordering == 'min_price':
-            qs = qs.order_by('min_p')
-        elif ordering == '-min_price':
-            qs = qs.order_by('-min_p')
-        else:
-            qs = qs.order_by(ordering)
-        return qs
+        return apply_offer_list_filters(base_qs, self.request.query_params)
 
 
 class OfferDetailView(RetrieveUpdateDestroyAPIView):
