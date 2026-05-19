@@ -4,7 +4,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=core.settings
 ENV PORT=8080
-ENV SQLITE_PATH=/tmp/db.sqlite3
 
 WORKDIR /app/backend
 
@@ -13,5 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend .
 
-# Same pattern as revision 00003 (deploy worked); migrate then gunicorn on 0.0.0.0
-CMD ["/bin/sh", "-c", "rm -f \"$SQLITE_PATH\" && python manage.py migrate --noinput && exec gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 8 core.wsgi:application"]
+# Create DB schema at image build time (Cloud Run startup must not block on migrate)
+ENV SECRET_KEY=build-time-only-replaced-at-runtime
+ENV DEBUG=False
+ENV SQLITE_PATH=/app/backend/db.sqlite3
+RUN python manage.py migrate --noinput
+
+# Only start Gunicorn at runtime (fast listen on :8080 for Cloud Run health check)
+CMD ["/bin/sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 8 core.wsgi:application"]
