@@ -12,5 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend .
 
-CMD python manage.py migrate --noinput && \
-    exec gunicorn --bind :$PORT --workers 1 --threads 8 core.wsgi:application
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

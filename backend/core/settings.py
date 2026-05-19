@@ -17,6 +17,15 @@ PROJECT_ROOT = BASE_DIR.parent
 _env_file = PROJECT_ROOT / '.env'
 
 
+def _cast_env_value(value, cast):
+    """Cloud Run env vars are strings; bool('False') would wrongly be True."""
+    if cast is bool:
+        return value.strip().lower() in ('true', '1', 't', 'yes', 'on')
+    if cast is not None:
+        return cast(value)
+    return value
+
+
 class _EnvConfig:
     """Read settings from OS env (e.g. Cloud Run) when no .env file is present."""
 
@@ -24,9 +33,7 @@ class _EnvConfig:
         value = os.environ.get(key)
         if value is None:
             return default
-        if cast is not None:
-            return cast(value)
-        return value
+        return _cast_env_value(value, cast)
 
 
 config = Config(str(_env_file)) if _env_file.is_file() else _EnvConfig()
