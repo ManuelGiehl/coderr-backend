@@ -5,15 +5,31 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
-from decouple import Config
+from decouple import Config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Project root (parent of backend/) – .env lives here
 PROJECT_ROOT = BASE_DIR.parent
-config = Config(str(PROJECT_ROOT / '.env'))
+_env_file = PROJECT_ROOT / '.env'
+
+
+class _EnvConfig:
+    """Read settings from OS env (e.g. Cloud Run) when no .env file is present."""
+
+    def __call__(self, key, default=None, cast=None):
+        value = os.environ.get(key)
+        if value is None:
+            return default
+        if cast is not None:
+            return cast(value)
+        return value
+
+
+config = Config(str(_env_file)) if _env_file.is_file() else _EnvConfig()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
@@ -21,7 +37,29 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+# Comma-separated in .env; includes local dev + production API + frontend host
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default=(
+        '127.0.0.1,localhost,testserver,'
+        'apicoderr.manuelgiehl.com,coderr.manuelgiehl.com'
+    ),
+    cast=Csv(),
+)
+
+# HTTPS origins (Django 4+); needed e.g. for admin/forms behind HTTPS
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default=(
+        'https://coderr.manuelgiehl.com,'
+        'https://apicoderr.manuelgiehl.com'
+    ),
+    cast=Csv(),
+)
+
+# Reverse proxy (Ionos/nginx): set USE_X_FORWARDED_PROTO=True in .env on the server
+if config('USE_X_FORWARDED_PROTO', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -139,5 +177,13 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS: allow frontend origin (set CORS_ALLOWED_ORIGINS in production)
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# CORS: dev = permissive; production = only the SPA origin(s)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = config(
+        'CORS_ALLOWED_ORIGINS',
+        default='https://coderr.manuelgiehl.com',
+        cast=Csv(),
+    )
