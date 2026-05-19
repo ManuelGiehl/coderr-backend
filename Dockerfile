@@ -12,4 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend .
 
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 core.wsgi:application
+CMD python manage.py migrate --noinput && \
+    exec gunicorn --bind :$PORT --workers 1 --threads 8 core.wsgi:application
