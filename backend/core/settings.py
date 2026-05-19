@@ -32,7 +32,13 @@ class _EnvConfig:
     def __call__(self, key, default=None, cast=None):
         value = os.environ.get(key)
         if value is None:
+            if default is not None and cast is not None:
+                if cast is bool and isinstance(default, bool):
+                    return default
+                return cast(default)
             return default
+        if cast is None:
+            return value
         return _cast_env_value(value, cast)
 
 
