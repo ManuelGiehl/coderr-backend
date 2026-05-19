@@ -17,6 +17,7 @@ ENV SECRET_KEY=build-time-only-replaced-at-runtime
 ENV DEBUG=False
 ENV SQLITE_PATH=/app/backend/db.sqlite3
 RUN python manage.py migrate --noinput
+RUN python manage.py create_guest_users
 
 # Only start Gunicorn at runtime (fast listen on :8080 for Cloud Run health check)
 CMD ["/bin/sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 8 core.wsgi:application"]
