@@ -6,8 +6,7 @@ cd /app/backend
 rm -f db.sqlite3
 
 echo "=== Running migrations ==="
-python manage.py migrate --noinput --verbosity 2
-python manage.py showmigrations
+python manage.py migrate --noinput
 
-echo "=== Starting Gunicorn ==="
+echo "=== Starting Gunicorn on port ${PORT:-8080} ==="
 exec gunicorn --bind ":${PORT:-8080}" --workers 1 --threads 8 core.wsgi:application
